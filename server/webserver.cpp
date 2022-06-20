@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-22 10:03:52
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-18 16:29:34
+ * @LastEditTime: 2022-06-20 14:57:19
  */
 
 #include "webserver.h"
@@ -14,13 +14,13 @@ WebServer::WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int thre
 {
     //获取当前工作目录的绝对路径
     srcDir_=getcwd(nullptr,256);
-    std::cout<<"srcDir_="<<srcDir_<<std::endl;
     assert(srcDir_);
     //拼接字符串
     strncat(srcDir_,"/resources/",16);
     HTTPconnection::userCount=0;
     HTTPconnection::srcDir=srcDir_;
-
+    std::cout<<"srcDir_="<<srcDir_<<std::endl;
+    
     initEventMode_(trigMode);
     if(!initSocket_()) isClose_=true;
 }
@@ -118,6 +118,11 @@ bool WebServer::initSocket_(){
      * 因此无论何时需要将sockaddr_in强制转换成sockaddr
      */
     ret=bind(listenFd_,(struct sockaddr*)&addr,sizeof(addr));
+    if(ret < 0) {
+        //std::cout<<"Bind Port"<<port_<<" error!"<<std::endl;
+        close(listenFd_);
+        return false;
+    }
 
     //listen告诉内核该描述符是被服务器使用的，即从主动套接字转化为监听套接字
     //backlog=6表示在开始拒绝连接请求前队列中要排队的未完成的连接请求的数量
@@ -160,30 +165,38 @@ void WebServer::Start()
             //获取已就绪事件的类型
             uint32_t events=epoller_->getEvents(i);
             if(fd==listenFd_){
+                std::cout<<"*********************************listening start***************************"<<std::endl;
                 handleListen_();
-                std::cout<<fd<<" is listening!"<<std::endl;
+                std::cout<<"listenFd_="<<fd<<" is listening!"<<std::endl;
+                std::cout<<"*********************************listening end***************************"<<std::endl;
             }else if(events&(EPOLLRDHUP | EPOLLHUP | EPOLLERR)){
                  /**
                  * EPOLLRDHUP: TCP连接被对方关闭
                  * EPOLLHUP: 挂起
                  * EPOLLERR: 错误
                  */
+                std::cout<<"*********************************close start***************************"<<std::endl;
                 assert(users_.count(fd));
-                std::cout<<"Ready event: IP="<<users_[fd].getFd()<<" events="<<events<<" port=EPOLLRDHUP | EPOLLHUP | EPOLLERR!"<<std::endl;
+                std::cout<<"Ready event: IP="<<users_[fd].getIP()<<":"<<users_[fd].getPort()<<" fd="<<users_[fd].getFd()<<" events="<<events<<" port=EPOLLRDHUP | EPOLLHUP | EPOLLERR!"<<std::endl;
                 closeConn_(&users_[fd]);
                 std::cout<<fd<<" close!"<<std::endl;
+                std::cout<<"*********************************close end***************************"<<std::endl;
             }else if(events&EPOLLIN){//EPOLLIN:数据（普通和优先）可读
+                std::cout<<"*********************************read start***************************"<<std::endl;
                 assert(users_.count(fd)>0);
-                std::cout<<"Ready event: IP="<<users_[fd].getFd()<<" events="<<events<<" port="<<users_[fd].getPort()<<" events=EPOLLIN!"<<std::endl;
+                std::cout<<"Ready event: IP="<<users_[fd].getIP()<<":"<<users_[fd].getPort()<<" fd="<<users_[fd].getFd()<<" events=EPOLLIN!"<<std::endl;
                 handleRead_(&users_[fd]);
-                std::cout<<fd<<" reading end!"<<std::endl;
+                std::cout<<"*********************************read end***************************"<<std::endl;
             }else if(events&EPOLLOUT){
+                std::cout<<"*********************************write start***************************"<<std::endl;
                 assert(users_.count(fd)>0);
-                std::cout<<"Ready event: IP="<<users_[fd].getFd()<<" events="<<events<<" port="<<users_[fd].getPort()<<" events=EPOLLOUT!"<<std::endl;
+                std::cout<<"Ready event: IP="<<users_[fd].getIP()<<":"<<users_[fd].getPort()<<" fd="<<users_[fd].getFd()<<" events=EPOLLOUT!"<<std::endl;
                 handleWrite_(&users_[fd]);
-                std::cout<<fd<<" writting end!"<<std::endl;
+                std::cout<<"*********************************write end***************************"<<std::endl;
             }else{
+                std::cout<<"*********************************unexpected start***************************"<<std::endl;
                 std::cout<<"Unexpected event"<<std::endl;
+                std::cout<<"*********************************unexpected end***************************"<<std::endl;
             }
         }
     }
@@ -196,6 +209,7 @@ void WebServer::handleListen_()
     do{
         //addr用来获取被接受连接的远端socket地址，并返回一个新的连接socket
         int fd=accept(listenFd_,(struct sockaddr*)&addr,&len);
+        std::cout<<"accept fd="<<fd<<std::endl;
         if(fd<0){return;}
         else if(HTTPconnection::userCount>=MAX_FD){
             sendError_(fd,"Server busy!");
@@ -234,7 +248,7 @@ void WebServer::addClientConnection(int fd,sockaddr_in addr)
     assert(fd>0);
     users_[fd].initHTTPConn(fd,addr);
     if(timeoutMS_>0){
-        timer_->addTimer(fd,timeoutMS_,std::bind(WebServer::closeConn_,this,&users_[fd]));
+        timer_->addTimer(fd,timeoutMS_,std::bind(&WebServer::closeConn_,this,&users_[fd]));
     }
     //读事件/水平触发，并把这个连接socket对应的fd添加到epoll_pool中
     epoller_->addFd(fd,EPOLLIN|connectionEvent_);
@@ -277,8 +291,8 @@ void WebServer::onRead_(HTTPconnection* client)
     int ret=-1;
     int readErrno=0;
     ret=client->readBuffer(&readErrno);
-    std::cout<<"read "<<ret<<" bytes!"<<std::endl;
-    if(ret<0||readErrno!=EAGAIN){
+    //std::cout<<"read "<<ret<<" bytes!"<<std::endl;
+    if(ret<0&&readErrno!=EAGAIN){
         //如果读取错误，关闭连接
         closeConn_(client);
         return;
@@ -297,6 +311,7 @@ void WebServer::onWrite_(HTTPconnection* client)
         /* 传输完成 */
         if(client->isKeepAlive()) {
             onProcess_(client);
+            std::cout<<"write finshed onProcess..."<<std::endl;
             return;
         }
     }else if(ret<0){

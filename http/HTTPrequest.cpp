@@ -4,11 +4,11 @@
  * @Author: wanwanvv
  * @Date: 2022-05-29 09:16:02
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-05 16:46:41
+ * @LastEditTime: 2022-06-20 11:23:27
  */
 #include "HTTPrequest.h"
 
-//末日嗯的请求URI
+//允许的请求URI
 
 const std::unordered_set<std::string> HTTPrequest::DEFAULT_HTML
 {
@@ -36,9 +36,9 @@ bool HTTPrequest::parse(Buffer& buff)
 {
     const char CRLF[]="\r\n";
     if(buff.readableBytes()<=0) return false;
-    std::cout<<"parse buff start:"<<std::endl;
-    buff.printContent();
-    std::cout<<"parse buff finish:"<<std::endl;
+    // std::cout<<"parse buff start:"<<std::endl;
+    // buff.printContent();
+    // std::cout<<"parse buff finish:"<<std::endl;
     //逐行读取
     while(buff.readableBytes()&&state_!=FINISH){
         //当函数查找成功时，该迭代器指向查找到的子序列中的第一个元素
@@ -55,12 +55,14 @@ bool HTTPrequest::parse(Buffer& buff)
             parsePath_();
             break;
         case HEADERS:
+            std::cout<<"HEADER: "<<line<<std::endl;
             parseRequestHeader_(line);
             if(buff.readableBytes() <= 2) {
                 state_ = FINISH;
             }
             break;
         case BODY:
+            std::cout<<"BODY: "<<line<<std::endl;
             parseDataBody_(line);
             break;
         default:

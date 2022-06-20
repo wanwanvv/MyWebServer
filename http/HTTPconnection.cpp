@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-28 10:57:06
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-05 17:25:04
+ * @LastEditTime: 2022-06-20 15:14:01
  */
 #include "HTTPconnection.h"
 
@@ -65,21 +65,24 @@ int HTTPconnection::getPort() const {
     return addr_.sin_port;
 }
 
-size_t HTTPconnection::readBuffer(int* saveErrno){
+ssize_t HTTPconnection::readBuffer(int* saveErrno){
     ssize_t len=-1;
     do{
         len=readBuffer_.readFd(fd_,saveErrno);
         if(len<=0){
             break;
+        }else{
+            std::cout<<"readFd:len="<<len<<std::endl;
         }
     }while(isET);
     return len;
 }
 
-size_t HTTPconnection::writeBuffer(int* saveErrno){
+ssize_t HTTPconnection::writeBuffer(int* saveErrno){
     ssize_t len=-1;
     do{
         len=writev(fd_,iov_,iovCnt_);
+        std::cout<<"writev len="<<len<<std::endl;
         if(len <= 0) {
             *saveErrno = errno;
             break;

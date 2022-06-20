@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-28 10:56:53
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-03 16:28:27
+ * @LastEditTime: 2022-06-20 14:44:28
  */
 #ifndef HTTP_CONNECTION_H
 #define HTTP_CONNECTION_H
@@ -24,8 +24,8 @@ public:
     void initHTTPConn(int socketFd,const sockaddr_in& addr);
 
     //每个连接中定义的对缓冲区的读写接口
-    size_t readBuffer(int* saveErrno);
-    size_t writeBuffer(int* saveErrno);
+    ssize_t readBuffer(int* saveErrno);
+    ssize_t writeBuffer(int* saveErrno);
 
     //关闭连接的接口
     void closeHTTPConn();

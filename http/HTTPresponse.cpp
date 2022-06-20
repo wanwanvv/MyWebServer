@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-06-03 11:44:29
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-05 17:22:53
+ * @LastEditTime: 2022-06-20 10:56:25
  */
 
 #include "HTTPresponse.h"
@@ -76,6 +76,7 @@ void HTTPresponse::makeResponse(Buffer& buff)
         code_=403;
     }else if(code_==-1){
         code_=200;
+        std::cout<<"code="<<code_<<std::endl;
     }
     //错误返回
     errorHTML_();
