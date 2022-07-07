@@ -4,12 +4,12 @@
  * @Author: wanwanvv
  * @Date: 2022-05-22 10:03:52
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-20 14:57:19
+ * @LastEditTime: 2022-06-27 11:22:11
  */
 
 #include "webserver.h"
 
-WebServer::WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int threadNum):port_(port),openLinger_(optLinger),timeoutMS_(timeoutMS),isClose_(false),
+WebServer::WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int threadNum,bool sslFlag):port_(port),openLinger_(optLinger),timeoutMS_(timeoutMS),isClose_(false),
     timer_(new TimerManager()),threadpool_(new ThreadPool(threadNum)),epoller_(new Epoller())
 {
     //获取当前工作目录的绝对路径
@@ -23,6 +23,31 @@ WebServer::WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int thre
     
     initEventMode_(trigMode);
     if(!initSocket_()) isClose_=true;
+    if(sslFlag){
+        //初始化 SSL 算法库函数，调用 SSL 系列函数之前必须调用此函数
+        SSL_library_init ();
+        //加载 SSL 错误消息
+        SSL_load_error_strings ();
+        // // 加载 BIO 抽象库的错误信息
+        // ERR_load_BIO_strings();
+        // // 加载所有 加密 和 散列 函数
+        // OpenSSL_add_all_algorithms();
+        //创建SSL_CTX结构体指针
+        HTTPconnection::ctx=SP_SSL_CTX(SSL_CTX_new(SSLv23_method()),SSL_CTX_free);
+        //载入用户的数字证书， 此证书用来发送给服务端端。 证书里包含有公钥 
+        if (SSL_CTX_use_certificate_file(HTTPconnection::ctx.get(), "../ssl/ca.crt", SSL_FILETYPE_PEM) <= 0) {
+            std::cout<<"ssl_ctx_use_certificate_file failed"<<std::endl;
+	    }
+        if (SSL_CTX_use_PrivateKey_file(HTTPconnection::ctx.get(), "../ssl/ca.key", SSL_FILETYPE_PEM) <= 0) {
+            std::cout<<"ssl_ctx_use_privatekey_file failed"<<std::endl;
+	    }
+        if (SSL_CTX_check_private_key(HTTPconnection::ctx.get())<= 0) {
+            std::cout<<"ssl_ctx_check_privatekey_file failed"<<std::endl;
+	    }
+        HTTPconnection::isSSL=true;
+    }else{
+        HTTPconnection::isSSL=false;
+    }
 }
 
 WebServer::~WebServer()
@@ -36,6 +61,7 @@ void WebServer::initEventMode_(int trigMode)
 {
     listenEvent_=EPOLLRDHUP;//EPOLLRDHUP:流套接字对等端关闭连接或关闭写入连接的一半（用于ET模式下编写代码检测对等关闭）
     connectionEvent_ = EPOLLONESHOT | EPOLLRDHUP;//EPOLLONESHOT:只触发一次，事件自动被删除
+
     switch (trigMode)
     {
     case 0:
@@ -185,7 +211,8 @@ void WebServer::Start()
                 std::cout<<"*********************************read start***************************"<<std::endl;
                 assert(users_.count(fd)>0);
                 std::cout<<"Ready event: IP="<<users_[fd].getIP()<<":"<<users_[fd].getPort()<<" fd="<<users_[fd].getFd()<<" events=EPOLLIN!"<<std::endl;
-                handleRead_(&users_[fd]);
+                if(events&EPOLLET) handleRead_(&users_[fd]);
+                else handleSSLConn_(&users_[fd]);
                 std::cout<<"*********************************read end***************************"<<std::endl;
             }else if(events&EPOLLOUT){
                 std::cout<<"*********************************write start***************************"<<std::endl;
@@ -226,7 +253,26 @@ void WebServer::handleRead_(HTTPconnection* client)
     //延长超时时间
     extentTime_(client);
     //向队列中提交执行事件
-    threadpool_->submit(std::bind(&WebServer::onRead_,this,client));
+     threadpool_->submit(std::bind(&WebServer::onRead_,this,client));
+}
+
+void WebServer::handleSSLConn_(HTTPconnection* client){
+    int result=SSL_do_handshake(client->getSSL().get());
+    if(1==result){
+        client->setSSLConnect(true);
+        epoller_->addFd(client->getFd(),EPOLLIN|connectionEvent_);
+        return;
+    }
+    int error=SSL_get_error(client->getSSL().get(),result);
+	if (SSL_ERROR_WANT_WRITE==error){
+        epoller_->addFd(client->getFd(),EPOLLOUT|connectionEvent_);
+	}else if (SSL_ERROR_WANT_READ==error){
+        epoller_->addFd(client->getFd(),EPOLLIN);
+	}else {
+		std::cout<<"SSL handshake error!"<<std::endl;
+		closeConn_(client);
+    }
+    return;
 }
 
 void WebServer::handleWrite_(HTTPconnection* client){
@@ -251,7 +297,8 @@ void WebServer::addClientConnection(int fd,sockaddr_in addr)
         timer_->addTimer(fd,timeoutMS_,std::bind(&WebServer::closeConn_,this,&users_[fd]));
     }
     //读事件/水平触发，并把这个连接socket对应的fd添加到epoll_pool中
-    epoller_->addFd(fd,EPOLLIN|connectionEvent_);
+    if(HTTPconnection::isSSL&&!users_[fd].getSSLConnect()) epoller_->addFd(fd,EPOLLIN);
+    else epoller_->addFd(fd,EPOLLIN|connectionEvent_);
     setFdNonblock(fd);
 }
 

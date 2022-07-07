@@ -4,9 +4,10 @@
  * @Author: wanwanvv
  * @Date: 2022-05-28 10:57:06
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-20 15:14:01
+ * @LastEditTime: 2022-06-27 11:53:19
  */
 #include "HTTPconnection.h"
+#include "LFUCache.h"
 
 bool HTTPconnection::isET;
 const char* HTTPconnection::srcDir;
@@ -37,6 +38,19 @@ void HTTPconnection::initHTTPConn(int fd,const sockaddr_in& addr){
     writeBuffer_.initPtr();
     readBuffer_.initPtr();
     isClose_=false;
+    isSSLConnect=false;
+    //ssl
+    if(isSSL){
+        //基于 ctx 产生一个新的 SSL
+        ssl_=SP_SSL(SSL_new(ctx.get()),SSL_free);
+        //ssl_=std::make_shared<SSL>(SSL_new(ctx.get()),SSL_free);
+        //将连接用户的 socket 加入到 SSL
+        SSL_set_fd(ssl_.get(), fd);
+        //建立 SSL 连接
+        SSL_set_accept_state(ssl_.get());
+        //if (SSL_accept(ssl) == -1)
+        setSSLConnect(true);
+    }
 }
 
 //关闭HTTP连接
@@ -45,6 +59,11 @@ void HTTPconnection::closeHTTPConn(){
     if(isClose_==false){
         isClose_=true;
         userCount--;
+        if(isSSL&&isSSLConnect){
+            isSSLConnect=false;
+            SSL_shutdown(ssl_.get());//关闭 SSL 连接
+            SSL_free(ssl_.get());//释放 SSL
+        }
         close(fd_);
     }
 }
@@ -68,7 +87,8 @@ int HTTPconnection::getPort() const {
 ssize_t HTTPconnection::readBuffer(int* saveErrno){
     ssize_t len=-1;
     do{
-        len=readBuffer_.readFd(fd_,saveErrno);
+        if(isSSLConnect) len=readBuffer_.readFd_ssl(ssl_.get(),saveErrno);
+        else len=readBuffer_.readFd(fd_,saveErrno);
         if(len<=0){
             break;
         }else{
@@ -81,7 +101,13 @@ ssize_t HTTPconnection::readBuffer(int* saveErrno){
 ssize_t HTTPconnection::writeBuffer(int* saveErrno){
     ssize_t len=-1;
     do{
-        len=writev(fd_,iov_,iovCnt_);
+        if(isSSLConnect){
+            int len1=SSL_write(ssl_.get(),iov_[0].iov_base,iov_[0].iov_len);
+            int len2=SSL_write(ssl_.get(),iov_[1].iov_base,iov_[1].iov_len);
+            len=len1+len2;
+        }else{
+            len=writev(fd_,iov_,iovCnt_);
+        }
         std::cout<<"writev len="<<len<<std::endl;
         if(len <= 0) {
             *saveErrno = errno;
@@ -116,17 +142,26 @@ bool HTTPconnection::handleHTTPConn()
         std::cout<<"400!"<<std::endl;
         response_.init(srcDir,request_.path(),false,400);
     }
-    response_.makeResponse(writeBuffer_);
-    /* 响应头存在iov_[0] */
-    iov_[0].iov_base=const_cast<char*>(writeBuffer_.curReadPtr());
-    iov_[0].iov_len = writeBuffer_.readableBytes();
-    iovCnt_ = 1;
 
-    /* 文件存在iov_[1] */
-    if(response_.fileLen()>0&&response_.file()){
-        iov_[1].iov_base=response_.file();
-        iov_[1].iov_len=response_.fileLen();
-        iovCnt_=2;
+    auto cacheContent=getCache().get(request_.path());
+    if(cacheContent.first!=nullptr){
+        iov_[0].iov_base=cacheContent.first;
+        iov_[0].iov_len = cacheContent.second;
+        iovCnt_ = 1;
+    }else{
+        response_.makeResponse(writeBuffer_);
+        /* 响应头存在iov_[0] */
+        iov_[0].iov_base=const_cast<char*>(writeBuffer_.curReadPtr());
+        iov_[0].iov_len = writeBuffer_.readableBytes();
+        iovCnt_ = 1;
+        
+        /* 文件存在iov_[1] */
+        if(response_.fileLen()>0&&response_.file()){
+            iov_[1].iov_base=response_.file();
+            iov_[1].iov_len=response_.fileLen();
+            iovCnt_=2;
+        }
+        getCache().set(request_.path(), (char*)iov_[0].iov_base, iov_[0].iov_len,(char*)iov_[1].iov_base, iov_[1].iov_len);
     }
     return true;
 }

@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-22 10:04:15
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-18 16:29:27
+ * @LastEditTime: 2022-06-27 14:44:13
  */
 #ifndef WEBSERVER_H
 #define WEBSERVER_H
@@ -17,6 +17,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+
+
 #include "epoller.h"
 #include "timer.h"
 #include "threadpool.h"
@@ -24,7 +26,7 @@
 
 class WebServer{
 public:
-    WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int threadNum);
+    WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int threadNum, bool sslFlag=false);
     ~WebServer();
     void Start(); //启动服务
 
@@ -44,6 +46,7 @@ private:
     void handleListen_();
     void handleWrite_(HTTPconnection* client);
     void handleRead_(HTTPconnection* client);
+    void handleSSLConn_(HTTPconnection* client);
 
     //发送错误信息给客户端
     void sendError_(int fd,const char* info);
@@ -63,6 +66,7 @@ private:
     int listenFd_;
     bool openLinger_;
     char* srcDir_;//需要获取的路径
+    
 
     uint32_t listenEvent_;
     uint32_t connectionEvent_;

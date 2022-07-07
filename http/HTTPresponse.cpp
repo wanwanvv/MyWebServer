@@ -120,6 +120,35 @@ void HTTPresponse::addResponseHeader_(Buffer& buff) {
     buff.append("Content-type: " + getFileType_() + "\r\n");
 }
 
+// void HTTPresponse::addResponseContent_(Buffer& buff)
+// {
+//     int srcFd = open((srcDir_ + path_).data(), O_RDONLY);
+//     if(srcFd<0){
+//         errorContent(buff,"File NotFound!");
+//         return;
+//     }
+//     // 将文件映射到内存提高文件的访问速度 
+//     // MAP_PRIVATE 建立一个写入时拷贝的私有映射
+//     /**
+//      * @brief extern void *mmap (void *__addr, size_t __len, int __prot,
+// 		   int __flags, int __fd, __off_t __offset)
+//      *  @__addr: 用户指定起始地址，为null时系统自动分配
+//      *  @__len: 指定内存段的长度
+//      *  @__prot: 设置访问权限，PROT_READ表示可读
+//      *  @__flags: 内存段内容被修改后程序的行为，MAP_PRIVATE为调用进程所私有
+//      *  @__fd: 被映射文件对应的fd
+//      *  @__offset: 从文件的何处开始映射
+//      */
+//     int* mmRet=(int*) mmap(0,mmFileStat_.st_size,PROT_READ, MAP_PRIVATE,srcFd,0);
+//     if(*mmRet==-1){
+//         errorContent(buff,"File NotFound!");
+//         return;
+//     }
+//     mmFile_=(char*)mmRet;
+//     close(srcFd);
+//     buff.append("Content-length: " + std::to_string(mmFileStat_.st_size) + "\r\n\r\n");
+// }
+
 void HTTPresponse::addResponseContent_(Buffer& buff)
 {
     int srcFd = open((srcDir_ + path_).data(), O_RDONLY);
@@ -127,18 +156,6 @@ void HTTPresponse::addResponseContent_(Buffer& buff)
         errorContent(buff,"File NotFound!");
         return;
     }
-    // 将文件映射到内存提高文件的访问速度 
-    // MAP_PRIVATE 建立一个写入时拷贝的私有映射
-    /**
-     * @brief extern void *mmap (void *__addr, size_t __len, int __prot,
-		   int __flags, int __fd, __off_t __offset)
-     *  @__addr: 用户指定起始地址，为null时系统自动分配
-     *  @__len: 指定内存段的长度
-     *  @__prot: 设置访问权限，PROT_READ表示可读
-     *  @__flags: 内存段内容被修改后程序的行为，MAP_PRIVATE为调用进程所私有
-     *  @__fd: 被映射文件对应的fd
-     *  @__offset: 从文件的何处开始映射
-     */
     int* mmRet=(int*) mmap(0,mmFileStat_.st_size,PROT_READ, MAP_PRIVATE,srcFd,0);
     if(*mmRet==-1){
         errorContent(buff,"File NotFound!");

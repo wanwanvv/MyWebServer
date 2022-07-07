@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-29 09:18:28
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-05-29 09:42:56
+ * @LastEditTime: 2022-06-27 15:20:52
  */
 #ifndef BUFFER_H
 #define BUFFER_H
@@ -17,9 +17,14 @@
 #include<sys/uio.h> //readv() writev()
 #include<assert.h>
 
+#include <openssl/bio.h> //处理包括文件和套接字在内的各种类型的通信
+#include <openssl/ssl.h>//ssl的主要数据结构
+#include <openssl/err.h>
+
 class Buffer{
 public:
     Buffer(int initBufferSize=1024);
+
     ~Buffer()=default;
 
     //缓冲区中可以读取的字节数
@@ -53,6 +58,9 @@ public:
     //I/O操作的读写接口
     ssize_t readFd(int fd,int* Errno);
     ssize_t writeFd(int fd,int* Errno);
+
+    ssize_t readFd_ssl(SSL* ssl,int* Errno);
+    ssize_t writeFd_ssl(SSL* ssl,int* Errno);
 
     //将缓冲区的数据转化为字符串
     std::string AlltoStr();

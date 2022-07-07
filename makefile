@@ -18,6 +18,7 @@ CUR_DIR = $(shell pwd)
 TARGET_DIR := $(patsubst %,$(CUR_DIR)/%,$(TARGET_DIR))
 OUTPUT_OBJ_DIR := $(patsubst %,$(CUR_DIR)/%,$(OUTPUT_OBJ_DIR))
 INC_DIRS := $(patsubst %,$(CUR_DIR)/%,$(INC_DIRS))
+INC_DIRS+=/usr/local/openssl/include/
 SRC_DIRS := $(patsubst %,$(CUR_DIR)/%,$(SRC_DIRS))
 SRC_DIRS += $(CUR_DIR)
 SRC_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.cpp))
@@ -30,7 +31,7 @@ OBJS := $(patsubst %,$(OUTPUT_OBJ_DIR)/%,$(OBJS))
 
 # -lpthread
 CXX = g++
-CXXFLAGS = -g -w -Wall -Wextra -O3 -std=c++11 -fopenmp -pthread
+CXXFLAGS = -g -w -Wall -Wextra -O3 -std=c++11 -fopenmp -pthread -lssl
 INCFLAGS := $(patsubst %,-I%,$(INC_DIRS))
 
 TARGET := bin/server_run

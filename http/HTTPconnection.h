@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-28 10:56:53
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-20 14:44:28
+ * @LastEditTime: 2022-06-27 11:41:08
  */
 #ifndef HTTP_CONNECTION_H
 #define HTTP_CONNECTION_H
@@ -12,9 +12,14 @@
 #include<iostream>
 #include<sys/uio.h> //readv/writev
 #include<sys/types.h>
+
 #include "buffer.h"
 #include "HTTPrequest.h"
 #include "HTTPresponse.h"
+
+//OpenSSL 库的核心数据结构是SSL对象和SSL_CTX对象
+typedef std::shared_ptr<SSL_CTX> SP_SSL_CTX;
+typedef std::shared_ptr<SSL> SP_SSL;
 
 class HTTPconnection{
 public:
@@ -31,6 +36,8 @@ public:
     void closeHTTPConn();
     //定义处理HTTP连接的接口，分为解析request和生成response
     bool handleHTTPConn();
+    //处理SSL握手
+    bool sslHandShake();
 
     //其他方法
     const char* getIP() const;
@@ -47,8 +54,27 @@ public:
         return request_.isKeepAlive();
     }
 
+    bool getSSLConnect(){
+        return isSSLConnect;
+    }
+
+    bool setSSLConnect(bool flag){
+        isSSLConnect=flag;
+    }
+
+    SP_SSL getSSL(){
+        return ssl_;
+    }
+
+    bool setSSL(bool flag){
+        isSSLConnect=flag;
+    }
+
     static bool isET;
+    static SP_SSL_CTX ctx;//ssl 变量
+    static bool isSSL;
     static const char* srcDir;
+    
     static std::atomic<int>userCount;//原子类型，允许无锁并行编程
 
 private:
@@ -65,6 +91,8 @@ private:
     HTTPrequest request_;
     HTTPresponse response_;
     
+    SP_SSL ssl_;
+    bool isSSLConnect;
 };
 
 #endif //HTTP_CONNECTION_H

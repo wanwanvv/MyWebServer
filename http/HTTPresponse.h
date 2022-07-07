@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-06-03 11:44:15
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-03 16:58:36
+ * @LastEditTime: 2022-06-22 20:58:20
  */
 #ifndef RESPONSE_H
 #define RESPONSE_H
@@ -35,6 +35,8 @@ private:
     void addStateLine_(Buffer& buffer);
     void addResponseHeader_(Buffer& buffer);
     void addResponseContent_(Buffer& buffer);
+
+    //void addResponseEntity_();
 
     void errorHTML_();
     std::string getFileType_();

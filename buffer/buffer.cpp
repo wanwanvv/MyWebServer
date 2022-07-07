@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-29 09:18:40
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-20 15:15:20
+ * @LastEditTime: 2022-06-27 15:15:15
  */
 
 #include "buffer.h"
@@ -145,10 +145,41 @@ ssize_t Buffer::readFd(int fd,int* Errno)
     return len;
 }
 
+ssize_t Buffer::readFd_ssl(SSL* ssl,int* Errno)
+{
+    size_t maxBuf=65535;
+    char buff[maxBuf];//暂时的缓冲区
+    const size_t writable=writeableBytes();
+    const ssize_t len=SSL_read(ssl,buff,maxBuf);
+    if(len<0)
+    {
+        //std::cout<<"从fd读取数据失败！"<<std::endl;
+        *Errno=errno;
+    }else
+    {
+        append(buff,len);
+    }
+    return len;
+}
+
 ssize_t Buffer::writeFd(int fd,int* Errno)
 {
     size_t readSize=readableBytes();
     ssize_t len=write(fd,curReadPtr(),readSize);
+    if(len<0)
+    {
+        //std::cout<<"往fd写入数据失败！"<<std::endl;
+        *Errno=errno;
+        return len;
+    }
+    readPos_+=len;
+    return len;
+}
+
+ssize_t Buffer::writeFd_ssl(SSL* ssl,int* Errno)
+{
+    size_t readSize=readableBytes();
+    ssize_t len=SSL_write(ssl,curReadPtr(),readSize);
     if(len<0)
     {
         //std::cout<<"往fd写入数据失败！"<<std::endl;
