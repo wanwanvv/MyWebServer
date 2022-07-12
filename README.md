@@ -16,35 +16,90 @@ make clean
 make
 ./bin/server_run
 
-## Functions
+## Functions and optimized method
 + 利用IO复用技术Epoll与线程池实现的多线程的Reactor高并发模型；
 + 利用正则与状态机解析HTTP请求，实现处理静态资源的要求；
 + 基于堆实现的定时器，关闭超时的非活动连接；
 + 利用openssl库支持ssl协议，允许HTTPS连接请求；
 + 实现LFUCache，加快访问速度；
 + 参考muduo，基于双缓冲机制实现的单例模式的异步日志系统，记录服务器运行状态；
-
-## Optimized method
-
++ 使用了智能指针，bind和function等c++11的新特性
++ 使用RAII机制封装锁，让线程更安全
 
 ## Directory tree
+```
+.
+├── buffer 实现读写网络数据缓存
+│   ├── buffer.cpp
+│   └── buffer.h
+├── cache LFU缓存
+│   ├── cache_test_run
+│   ├── LFCache_test.cpp
+│   ├── LFUCache.cpp
+│   ├── LFUCache.h
+│   └── makefile
+├── config
+├── epoll
+│   ├── epoller.cpp
+│   └── epoller.h
+├── http 连接处理
+│   ├── HTTPconnection.cpp
+│   ├── HTTPconnection.h
+│   ├── HTTPrequest.cpp
+│   ├── HTTPrequest.h
+│   ├── HTTPresponse.cpp
+│   └── HTTPresponse.h
+├── img
+│   └── cloc.png
+├── log 双缓冲实现日志
+│   ├── asynclogging.cpp
+│   ├── asynclogging.h
+│   ├── countlatch.cpp
+│   ├── countlatch.h
+│   ├── fileutil.cpp
+│   ├── fileutil.h
+│   ├── fixedbuffer.h
+│   ├── logfile.cpp
+│   ├── logfile.h
+│   ├── logging.cpp
+│   ├── logging.h
+│   ├── logging_test.cpp
+│   ├── logstream.cpp
+│   ├── logstream.h
+│   ├── makefile
+│   └── noncopyable.h
+├── main.cpp
+├── makefile
+├── pool
+│   └── threadpool.h
+├── README.md
+├── resources 存储静态文件
+├── server
+│   ├── webserver.cpp
+│   └── webserver.h
+├── ssl ssl证书和密钥
+│   ├── ca.crt
+│   ├── ca.csr
+│   ├── ca.key
+│   ├── certificate.config
+│   └── openssl.cnf
+├── timer 小根堆实现的定时器
+│   ├── timer.cpp
+│   └── timer.h
+└── webbench-1.5
+    ├── Makefile
+    ├── socket.c
+    ├── webbench
+    └── webbench.c
+
+```
 
 ## Codes statistics
--------------------------------------------------------------------------------
-Language                     files          blank        comment           code
--------------------------------------------------------------------------------
-CSS                              5             647             59           3377
-C++                             17            216            343           1510
-C/C++ Header                    17            171            186            709
-HTML                            10            131            101            645
-C                                2             36             68            409
-make                             4             31              9             96
-JSON                             2              0              0             74
-JavaScript                       7             18             45             60
-Markdown                         1              0              0              2
--------------------------------------------------------------------------------
-SUM:                            65           1250            811           6882
--------------------------------------------------------------------------------
+<p align="center">
+<img src=".\img\cloc.png" height = "180" alt="" align=center />
+<br><br>
+<b>Figure 1.</b> Code cloc.
+</p>
 
 ## Performance Test
 使用linux压测工具webbench，命令如下：
