@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-28 10:56:53
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-27 11:41:08
+ * @LastEditTime: 2022-07-07 09:44:11
  */
 #ifndef HTTP_CONNECTION_H
 #define HTTP_CONNECTION_H
@@ -12,10 +12,10 @@
 #include<iostream>
 #include<sys/uio.h> //readv/writev
 #include<sys/types.h>
-
 #include "buffer.h"
 #include "HTTPrequest.h"
 #include "HTTPresponse.h"
+#include "LFUCache.h"
 
 //OpenSSL 库的核心数据结构是SSL对象和SSL_CTX对象
 typedef std::shared_ptr<SSL_CTX> SP_SSL_CTX;

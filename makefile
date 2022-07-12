@@ -11,7 +11,9 @@ INC_DIRS := buffer \
             http \
 			pool \
 			server \
-			timer
+			timer \
+			cache \
+			log
 SRC_DIRS := $(INC_DIRS)
 
 CUR_DIR = $(shell pwd)
