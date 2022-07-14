@@ -24,7 +24,7 @@ make
 + 实现LFUCache，加快访问速度；
 + 参考muduo，基于双缓冲机制实现的单例模式的异步日志系统，记录服务器运行状态；
 + 使用了智能指针，bind和function等c++11的新特性
-+ 使用RAII机制封装锁，让线程更安全
++ 利用RAII机制实现了数据库连接池，减少数据库连接建立与关闭的开销，同时实现了用户注册登录功能
 
 ## Directory tree
 ```
@@ -68,6 +68,10 @@ make
 │   ├── logstream.h
 │   ├── makefile
 │   └── noncopyable.h
+├── sql 数据库连接
+│   ├── sqlconnpool.cpp
+│   ├── sqlconnpool.h
+│   └── sqlconnRAII.h
 ├── main.cpp
 ├── makefile
 ├── pool
