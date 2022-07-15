@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-22 10:04:15
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-07-07 09:16:09
+ * @LastEditTime: 2022-07-14 11:07:00
  */
 #ifndef WEBSERVER_H
 #define WEBSERVER_H
@@ -24,7 +24,8 @@
 
 class WebServer{
 public:
-    WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int threadNum, bool sslFlag=false);
+    WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int threadNum,const char* sqlIP,int sqlPort, const char* sqlUser, const  char* sqlPwd,
+            const char* dbName, int connPoolNum, bool sslFlag=false);
     ~WebServer();
     void Start(); //启动服务
 

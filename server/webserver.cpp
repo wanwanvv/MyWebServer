@@ -4,12 +4,13 @@
  * @Author: wanwanvv
  * @Date: 2022-05-22 10:03:52
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-06-27 11:22:11
+ * @LastEditTime: 2022-07-14 11:07:17
  */
 
 #include "webserver.h"
 
-WebServer::WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int threadNum,bool sslFlag):port_(port),openLinger_(optLinger),timeoutMS_(timeoutMS),isClose_(false),
+WebServer::WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int threadNum,const char* sqlIP,int sqlPort, const char* sqlUser, const  char* sqlPwd,
+            const char* dbName, int connPoolNum,bool sslFlag):port_(port),openLinger_(optLinger),timeoutMS_(timeoutMS),isClose_(false),
     timer_(new TimerManager()),threadpool_(new ThreadPool(threadNum)),epoller_(new Epoller())
 {
     //获取当前工作目录的绝对路径
@@ -20,7 +21,8 @@ WebServer::WebServer(int port,int trigMode,int timeoutMS,bool optLinger,int thre
     HTTPconnection::userCount=0;
     HTTPconnection::srcDir=srcDir_;
     std::cout<<"srcDir_="<<srcDir_<<std::endl;
-    
+    //初始化数据库连接池
+    SqlConnPool::Instance()->init(sqlIP, sqlPort, sqlUser, sqlPwd, dbName, connPoolNum);
     initEventMode_(trigMode);
     if(!initSocket_()) isClose_=true;
     if(sslFlag){

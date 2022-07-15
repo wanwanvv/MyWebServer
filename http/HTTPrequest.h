@@ -4,7 +4,7 @@
  * @Author: wanwanvv
  * @Date: 2022-05-29 09:15:52
  * @LastEditors: wanwanvv
- * @LastEditTime: 2022-05-29 11:35:02
+ * @LastEditTime: 2022-07-12 20:38:35
  */
 #ifndef HTTP_REQUEST_H
 #define HTTP_REQUEST_H
@@ -14,6 +14,7 @@
 #include <string>
 #include <regex>
 #include "buffer.h"
+#include "../sql/sqlconnRAII.h"
 
 class HTTPrequest{
 public:
@@ -58,6 +59,9 @@ private:
 
     void parsePath_();
     void parsePost_();
+    void parseFromUrlencoded_();
+
+    static bool UserVerify(const std::string& name, const std::string& pwd, bool isLogin);
 
     static int convertHex(char ch);
 
@@ -67,6 +71,7 @@ private:
     std::unordered_map<std::string,std::string> post_;
 
     static const std::unordered_set<std::string>DEFAULT_HTML;
+    static const std::unordered_map<std::string,int>DEFAULT_HTML_TAG;
 };
 
 #endif

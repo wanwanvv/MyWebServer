@@ -33,7 +33,7 @@ OBJS := $(patsubst %,$(OUTPUT_OBJ_DIR)/%,$(OBJS))
 
 # -lpthread
 CXX = g++
-CXXFLAGS = -g -w -Wall -Wextra -O3 -std=c++11 -fopenmp -pthread -lssl
+CXXFLAGS = -g -w -Wall -Wextra -O3 -std=c++11 -fopenmp -pthread -lssl -lmysqlclient
 INCFLAGS := $(patsubst %,-I%,$(INC_DIRS))
 
 TARGET := bin/server_run
