@@ -100,7 +100,7 @@ make
 
 ## Codes statistics
 <p align="center">
-<img src=".\img\cloc.png" height = "180" alt="" align=center />
+<img src=".\img\cloc.png" height = "220" alt="" align=center />
 <br><br>
 <b>Figure 1.</b> Code cloc.
 </p>
